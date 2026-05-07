@@ -1,0 +1,17 @@
+{
+  "name": "AuraValue Gold Hallmark AI",
+  "short_name": "AuraValue",
+  "description": "Identify gold purity and value from hallmarks.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0b",
+  "theme_color": "#D4AF37",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/2823/2823908.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

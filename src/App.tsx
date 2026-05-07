@@ -47,10 +47,11 @@ export default function App() {
     reader.readAsDataURL(file);
   }, []);
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+  const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
     onDrop,
     accept: { 'image/*': [] },
-    multiple: false
+    multiple: false,
+    noClick: false // Keep default click behavior on the container
   });
 
   const startAnalysis = async (base64: string) => {
@@ -119,7 +120,7 @@ export default function App() {
                 Evaluate your <span className="text-[#D4AF37] font-medium italic">Gold</span>.
               </h2>
               <p className="text-gray-400 text-sm max-w-sm">
-                Upload a clear close-up of the hallmark stamp. Our AI will identify the purity and calculate today's value.
+                Take a photo or upload a clear close-up of the hallmark stamp. Our AI will identify the purity and calculate today's value.
               </p>
             </div>
             {!image ? (
@@ -130,11 +131,11 @@ export default function App() {
                 <div 
                   {...getRootProps()}
                   className={cn(
-                    "relative group cursor-pointer border-2 border-dashed rounded-2xl transition-all duration-300 p-12 flex flex-col items-center justify-center gap-4 text-center",
+                    "relative group cursor-pointer border-2 border-dashed rounded-2xl transition-all duration-300 p-10 flex flex-col items-center justify-center gap-4 text-center",
                     isDragActive ? "border-[#D4AF37] bg-[#D4AF37]/5" : "border-white/10 hover:border-white/20 hover:bg-white/[0.02]"
                   )}
                 >
-                  <input {...getInputProps()} id="hallmark-upload" />
+                  <input {...getInputProps({ capture: 'environment' })} id="hallmark-upload" />
                   <div className="w-16 h-16 bg-white/[0.03] rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
                     <Camera className="w-8 h-8 text-gray-400 group-hover:text-[#D4AF37]" />
                   </div>
@@ -142,6 +143,19 @@ export default function App() {
                     <p className="text-white font-medium">Capture or Drop Image</p>
                     <p className="text-xs text-gray-500">Hallmark close-up recommended</p>
                   </div>
+                  
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      open();
+                    }}
+                    className="mt-4 px-6 py-3 bg-[#D4AF37] text-black rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-[#c29f2e] transition-colors shadow-[0_4px_20px_rgba(212,175,55,0.2)]"
+                  >
+                    <Camera className="w-4 h-4" />
+                    Open Camera
+                  </button>
+
                   <div className="mt-4 px-4 py-2 bg-white/5 rounded-full text-[10px] text-gray-400 flex items-center gap-2">
                     <Info className="w-3 h-3" />
                     Supports JPEG, PNG up to 10MB
