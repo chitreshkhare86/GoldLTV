@@ -56,23 +56,28 @@ export async function analyzeGoldHallmark(imageBase64: string): Promise<GoldAnal
   }
 }
 
-export async function getLiveGoldPrice(): Promise<number> {
-  const prompt = "What is the current live market price of 24K gold per gram in USD? Return ONLY the numeric value in USD per gram. Example: 75.42";
+export interface GoldPrices {
+  usd: number;
+  inr: number;
+}
+
+export async function getLiveGoldPrices(): Promise<GoldPrices> {
+  const prompt = "What is the current live market price of 24K gold per gram in USD and in INR (India)? Return a JSON object with keys 'usd' and 'inr'. Example: {\"usd\": 78.50, \"inr\": 7540.20}";
   
   try {
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: prompt,
       config: {
-        tools: [{ googleSearch: {} }]
+        tools: [{ googleSearch: {} }],
+        responseMimeType: "application/json"
       }
     });
     
-    const priceText = response.text || "78.50";
-    const price = parseFloat(priceText.replace(/[^0-9.]/g, ""));
-    return isNaN(price) ? 78.50 : price;
+    const text = response.text || '{"usd": 78.50, "inr": 7500}';
+    return JSON.parse(text);
   } catch (error) {
     console.error("Price Fetch Error:", error);
-    return 78.50; 
+    return { usd: 78.50, inr: 7500 }; 
   }
 }

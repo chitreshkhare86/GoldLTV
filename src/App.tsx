@@ -10,11 +10,12 @@ import {
   AlertCircle, 
   Info,
   CheckCircle2,
-  RefreshCw
+  RefreshCw,
+  Globe
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { analyzeGoldHallmark, getLiveGoldPrice, type GoldAnalysisResult } from './services/goldService';
+import { analyzeGoldHallmark, getLiveGoldPrices, type GoldAnalysisResult, type GoldPrices } from './services/goldService';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -25,12 +26,13 @@ export default function App() {
   const [analyzing, setAnalyzing] = useState(false);
   const [result, setResult] = useState<GoldAnalysisResult | null>(null);
   const [weight, setWeight] = useState<number>(0);
-  const [livePrice, setLivePrice] = useState<number | null>(null);
+  const [prices, setPrices] = useState<GoldPrices | null>(null);
+  const [currency, setCurrency] = useState<'USD' | 'INR'>('USD');
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch live price on mount
+  // Fetch live prices on mount
   useEffect(() => {
-    getLiveGoldPrice().then(setLivePrice).catch(() => setLivePrice(78.50));
+    getLiveGoldPrices().then(setPrices).catch(() => setPrices({ usd: 78.50, inr: 7500 }));
   }, []);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
@@ -51,7 +53,7 @@ export default function App() {
     onDrop,
     accept: { 'image/*': [] },
     multiple: false,
-    noClick: false // Keep default click behavior on the container
+    noClick: false 
   });
 
   const startAnalysis = async (base64: string) => {
@@ -68,9 +70,15 @@ export default function App() {
     }
   };
 
+  const getActivePrice = () => {
+    if (!prices) return 0;
+    return currency === 'USD' ? prices.usd : prices.inr;
+  };
+
   const calculateValue = () => {
-    if (!result?.purityPercentage || !livePrice || !weight) return "0.00";
-    return (weight * (result.purityPercentage / 100) * livePrice).toLocaleString(undefined, { 
+    const price = getActivePrice();
+    if (!result?.purityPercentage || !price || !weight) return "0.00";
+    return (weight * (result.purityPercentage / 100) * price).toLocaleString(undefined, { 
       minimumFractionDigits: 2, 
       maximumFractionDigits: 2 
     });
@@ -98,19 +106,67 @@ export default function App() {
             </div>
           </div>
           
-          {livePrice && (
-            <div className="flex flex-col items-end">
-              <div className="flex items-center gap-2 text-sm">
-                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                <span className="text-gray-400">Live Price</span>
-                <span className="text-[#D4AF37] font-mono font-bold">${livePrice.toFixed(2)} /g</span>
-              </div>
+          <div className="flex items-center gap-6">
+            {/* Currency Toggle */}
+            <div className="hidden sm:flex items-center bg-white/5 rounded-full p-1 border border-white/10">
+              <button 
+                onClick={() => setCurrency('USD')}
+                className={cn(
+                  "px-3 py-1 rounded-full text-[10px] font-bold transition-all",
+                  currency === 'USD' ? "bg-[#D4AF37] text-black" : "text-gray-400 hover:text-white"
+                )}
+              >
+                GLOBAL (USD)
+              </button>
+              <button 
+                onClick={() => setCurrency('INR')}
+                className={cn(
+                  "px-3 py-1 rounded-full text-[10px] font-bold transition-all",
+                  currency === 'INR' ? "bg-[#D4AF37] text-black" : "text-gray-400 hover:text-white"
+                )}
+              >
+                INDIA (INR)
+              </button>
             </div>
-          )}
+
+            {prices && (
+              <div className="flex flex-col items-end">
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                  <span className="text-gray-400">Live Price</span>
+                  <span className="text-[#D4AF37] font-mono font-bold">
+                    {currency === 'USD' ? '$' : '₹'}{getActivePrice().toLocaleString(undefined, { minimumFractionDigits: 2 })} /g
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
       <main className="max-w-4xl mx-auto px-6 py-12">
+        {/* Mobile Currency Toggle */}
+        <div className="sm:hidden flex items-center justify-center mb-8 bg-white/5 rounded-full p-1 border border-white/10 w-fit mx-auto">
+          <button 
+            onClick={() => setCurrency('USD')}
+            className={cn(
+              "px-4 py-2 rounded-full text-[10px] font-bold transition-all",
+              currency === 'USD' ? "bg-[#D4AF37] text-black" : "text-gray-400 hover:text-white"
+            )}
+          >
+            USD
+          </button>
+          <button 
+            onClick={() => setCurrency('INR')}
+            className={cn(
+              "px-4 py-2 rounded-full text-[10px] font-bold transition-all",
+              currency === 'INR' ? "bg-[#D4AF37] text-black" : "text-gray-400 hover:text-white"
+            )}
+          >
+            INR
+          </button>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-start">
           
           {/* Left Column: Upload & Image */}
@@ -264,9 +320,11 @@ export default function App() {
                       <div>
                         <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Estimated Value</p>
                         <p className="text-4xl font-bold text-white tracking-tighter">
-                          ${calculateValue()}
+                          {currency === 'USD' ? '$' : '₹'}{calculateValue()}
                         </p>
-                        <p className="text-[10px] text-[#D4AF37] mt-1 font-medium">Based on current market fix</p>
+                        <p className="text-[10px] text-[#D4AF37] mt-1 font-medium italic">
+                          Based on {currency === 'USD' ? 'Global Spot' : 'MCX / India Market'} Price
+                        </p>
                       </div>
                       <div className="w-14 h-14 bg-[#D4AF37]/10 rounded-2xl flex items-center justify-center">
                         <TrendingUp className="text-[#D4AF37] w-8 h-8" />
