@@ -11,7 +11,11 @@ import {
   Info,
   CheckCircle2,
   RefreshCw,
-  Globe
+  Globe,
+  UserCheck,
+  ShieldCheck,
+  Fingerprint,
+  ChevronRight
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -22,6 +26,16 @@ function cn(...inputs: ClassValue[]) {
 }
 
 export default function App() {
+  const [kycData, setKycData] = useState<{
+    fullName: string;
+    idType: string;
+    idNumber: string;
+    phone: string;
+  } | null>(null);
+  const [isKycDone, setIsKycDone] = useState(false);
+  const [verifyingKyc, setVerifyingKyc] = useState(false);
+  const [kycError, setKycError] = useState<string | null>(null);
+  
   const [image, setImage] = useState<string | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [result, setResult] = useState<GoldAnalysisResult | null>(null);
@@ -29,6 +43,51 @@ export default function App() {
   const [prices, setPrices] = useState<GoldPrices | null>(null);
   const [currency, setCurrency] = useState<'USD' | 'INR'>('USD');
   const [error, setError] = useState<string | null>(null);
+
+  // Load KYC from local storage if exists
+  useEffect(() => {
+    const savedKyc = localStorage.getItem('aura_kyc');
+    if (savedKyc) {
+      setKycData(JSON.parse(savedKyc));
+      setIsKycDone(true);
+    }
+  }, []);
+
+  const handleKycSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setVerifyingKyc(true);
+    setKycError(null);
+
+    const formData = new FormData(e.currentTarget);
+    const data = {
+      fullName: formData.get('fullName') as string,
+      idType: formData.get('idType') as string,
+      idNumber: formData.get('idNumber') as string,
+      phone: formData.get('phone') as string,
+    };
+
+    try {
+      const response = await fetch('/api/kyc/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setKycData(data);
+        setIsKycDone(true);
+        localStorage.setItem('aura_kyc', JSON.stringify(data));
+      } else {
+        setKycError(result.message || "Identity verification failed. Please check your details.");
+      }
+    } catch (err) {
+      setKycError("Verification service temporarily unavailable.");
+    } finally {
+      setVerifyingKyc(false);
+    }
+  };
 
   // Fetch live prices on mount
   useEffect(() => {
@@ -91,6 +150,107 @@ export default function App() {
     setWeight(0);
   };
 
+  if (!isKycDone) {
+    return (
+      <div className="min-h-screen bg-[#0a0a0b] text-gray-100 font-sans flex items-center justify-center p-6">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="max-w-md w-full bg-white/[0.02] border border-white/10 rounded-3xl p-8 space-y-8"
+        >
+          <div className="text-center space-y-2">
+            <div className="w-16 h-16 bg-[#D4AF37]/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <ShieldCheck className="text-[#D4AF37] w-10 h-10" />
+            </div>
+            <h1 className="text-2xl font-bold text-white tracking-tight">Identity Verification</h1>
+            <p className="text-sm text-gray-500">Secure KYC required to access live gold valuation.</p>
+          </div>
+
+          <form onSubmit={handleKycSubmit} className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Full Name</label>
+              <input 
+                required
+                name="fullName"
+                type="text" 
+                placeholder="John Doe"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#D4AF37] transition-all"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">ID Type</label>
+                <select 
+                  name="idType"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#D4AF37] transition-all appearance-none"
+                >
+                  <option value="PAN" className="bg-[#0a0a0b]">PAN Card</option>
+                  <option value="AADHAAR" className="bg-[#0a0a0b]">Aadhaar Card</option>
+                  <option value="PASSPORT" className="bg-[#0a0a0b]">Passport</option>
+                  <option value="DL" className="bg-[#0a0a0b]">Driving License</option>
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">ID Number</label>
+                <input 
+                  required
+                  name="idNumber"
+                  type="text" 
+                  placeholder="XXXX-XXXX"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#D4AF37] transition-all"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Phone Number</label>
+              <input 
+                required
+                name="phone"
+                type="tel" 
+                placeholder="+91 XXXXX XXXXX"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#D4AF37] transition-all"
+              />
+            </div>
+
+            {kycError && (
+              <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                {kycError}
+              </div>
+            )}
+
+            <button 
+              type="submit"
+              disabled={verifyingKyc}
+              className="w-full bg-[#D4AF37] disabled:opacity-50 text-black py-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-[#c29f2e] transition-all group mt-4 shadow-[0_0_30px_rgba(212,175,55,0.2)]"
+            >
+              {verifyingKyc ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  Verifying with NSDL...
+                </>
+              ) : (
+                <>
+                  Verify & Enter App
+                  <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </>
+              )}
+            </button>
+          </form>
+
+          <div className="pt-6 border-t border-white/5 text-center">
+            <div className="flex items-center justify-center gap-2 text-[10px] text-gray-600 uppercase tracking-widest font-medium">
+              <Fingerprint className="w-3 h-3 text-[#D4AF37]" />
+              End-to-End Encrypted Data
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#0a0a0b] text-gray-100 font-sans selection:bg-[#D4AF37]/30">
       {/* Header */}
@@ -140,6 +300,22 @@ export default function App() {
                 </div>
               </div>
             )}
+          </div>
+          
+          <div className="flex items-center gap-4">
+            <div className="flex flex-col items-end pr-4 border-r border-white/5">
+              <span className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Verified User</span>
+              <span className="text-xs text-white font-medium">{kycData?.fullName}</span>
+            </div>
+            <button 
+              onClick={() => {
+                localStorage.removeItem('aura_kyc');
+                setIsKycDone(false);
+              }}
+              className="text-[10px] text-gray-500 hover:text-[#D4AF37] transition-colors uppercase tracking-widest font-bold"
+            >
+              Sign Out
+            </button>
           </div>
         </div>
       </header>
