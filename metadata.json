@@ -1,0 +1,8 @@
+{
+  "name": "Gold Hallmark Valuer",
+  "description": "Scan gold hallmarks to identify purity and calculate current market value using real-time gold prices.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": []
+}
