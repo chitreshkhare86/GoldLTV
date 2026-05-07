@@ -57,27 +57,40 @@ export async function analyzeGoldHallmark(imageBase64: string): Promise<GoldAnal
 }
 
 export interface GoldPrices {
-  usd: number;
-  inr: number;
+  usd24k: number;
+  usd22k: number;
+  usd18k: number;
+  inr24k: number;
+  inr22k: number;
+  inr18k: number;
 }
 
 export async function getLiveGoldPrices(): Promise<GoldPrices> {
-  const prompt = "What is the current live market price of 24K gold per gram in USD and in INR (India)? Return a JSON object with keys 'usd' and 'inr'. Example: {\"usd\": 78.50, \"inr\": 7540.20}";
+  const prompt = `What are the current live market prices for 24K, 22K, and 18K gold per gram in USD and in INR (India)? 
+  Return a JSON object with keys: usd24k, usd22k, usd18k, inr24k, inr22k, inr18k. 
+  Example: {"usd24k": 78.50, "usd22k": 72.10, "usd18k": 59.00, "inr24k": 7500, "inr22k": 6875, "inr18k": 5625}`;
   
   try {
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
-      contents: prompt,
+      contents: [
+        {
+          parts: [{ text: prompt }]
+        }
+      ],
       config: {
         tools: [{ googleSearch: {} }],
         responseMimeType: "application/json"
       }
     });
     
-    const text = response.text || '{"usd": 78.50, "inr": 7500}';
+    const text = response.text || '{"usd24k": 78.50, "usd22k": 72.10, "usd18k": 59.00, "inr24k": 7500, "inr22k": 6875, "inr18k": 5625}';
     return JSON.parse(text);
   } catch (error) {
     console.error("Price Fetch Error:", error);
-    return { usd: 78.50, inr: 7500 }; 
+    return { 
+      usd24k: 78.50, usd22k: 72.00, usd18k: 58.00, 
+      inr24k: 7500, inr22k: 6875, inr18k: 5625 
+    }; 
   }
 }

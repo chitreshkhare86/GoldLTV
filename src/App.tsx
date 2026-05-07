@@ -91,7 +91,10 @@ export default function App() {
 
   // Fetch live prices on mount
   useEffect(() => {
-    getLiveGoldPrices().then(setPrices).catch(() => setPrices({ usd: 78.50, inr: 7500 }));
+    getLiveGoldPrices().then(setPrices).catch(() => setPrices({ 
+      usd24k: 78.50, usd22k: 72.00, usd18k: 58.00, 
+      inr24k: 7500, inr22k: 6875, inr18k: 5625 
+    }));
   }, []);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
@@ -131,13 +134,28 @@ export default function App() {
 
   const getActivePrice = () => {
     if (!prices) return 0;
-    return currency === 'USD' ? prices.usd : prices.inr;
+    return currency === 'USD' ? prices.usd24k : prices.inr24k;
+  };
+
+  const getSpecificRate = () => {
+    if (!prices || !result) return 0;
+    const isUSD = currency === 'USD';
+    const karat = result.purityKarat?.toUpperCase();
+    const purity = result.purityPercentage || 0;
+
+    if (karat?.includes('24K') || purity >= 99) return isUSD ? prices.usd24k : prices.inr24k;
+    if (karat?.includes('22K') || purity >= 91) return isUSD ? prices.usd22k : prices.inr22k;
+    if (karat?.includes('18K') || purity >= 75) return isUSD ? prices.usd18k : prices.inr18k;
+
+    // Fallback: calculate based on 24K price * purity
+    const base24k = isUSD ? prices.usd24k : prices.inr24k;
+    return (base24k * purity) / 100;
   };
 
   const calculateValue = () => {
-    const price = getActivePrice();
-    if (!result?.purityPercentage || !price || !weight) return "0.00";
-    return (weight * (result.purityPercentage / 100) * price).toLocaleString(undefined, { 
+    const rate = getSpecificRate();
+    if (!rate || !weight) return "0.00";
+    return (weight * rate).toLocaleString(undefined, { 
       minimumFractionDigits: 2, 
       maximumFractionDigits: 2 
     });
@@ -493,16 +511,21 @@ export default function App() {
                     </div>
 
                     <div className="pt-6 border-t border-white/5 flex items-center justify-between">
-                      <div>
+                      <div className="space-y-1">
                         <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Estimated Value</p>
                         <p className="text-4xl font-bold text-white tracking-tighter">
                           {currency === 'USD' ? '$' : '₹'}{calculateValue()}
                         </p>
-                        <p className="text-[10px] text-[#D4AF37] mt-1 font-medium italic">
-                          Based on {currency === 'USD' ? 'Global Spot' : 'MCX / India Market'} Price
-                        </p>
+                        <div className="flex flex-col gap-0.5">
+                          <p className="text-[10px] text-[#D4AF37] font-medium italic">
+                            Applied Rate: {currency === 'USD' ? '$' : '₹'}{getSpecificRate().toFixed(2)}/g
+                          </p>
+                          <p className="text-[10px] text-gray-600">
+                            Based on {currency === 'USD' ? 'Global Spot' : 'MCX / India Market'} Price
+                          </p>
+                        </div>
                       </div>
-                      <div className="w-14 h-14 bg-[#D4AF37]/10 rounded-2xl flex items-center justify-center">
+                      <div className="w-14 h-14 bg-[#D4AF37]/10 rounded-2xl flex items-center justify-center shrink-0">
                         <TrendingUp className="text-[#D4AF37] w-8 h-8" />
                       </div>
                     </div>
