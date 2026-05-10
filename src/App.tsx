@@ -591,6 +591,7 @@ export default function App() {
                           <ChevronRight className="w-3 h-3" />
                         </button>
                         <button 
+                          onClick={reset}
                           className="px-6 py-3 bg-white/5 border border-white/10 text-gray-500 rounded-xl text-xs font-bold hover:bg-white/10 transition-all"
                         >
                           Maybe later
