@@ -530,6 +530,42 @@ export default function App() {
                       </div>
                     </div>
                   </div>
+
+                  {/* CSB Bank Gold Loan Enquiry */}
+                  {weight > 0 && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.3 }}
+                      className="p-6 rounded-2xl border border-blue-500/20 bg-blue-500/5 space-y-4"
+                    >
+                      <div className="flex items-start gap-4">
+                        <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center shrink-0">
+                          <Info className="text-blue-400 w-5 h-5" />
+                        </div>
+                        <div className="space-y-1">
+                          <h4 className="text-sm font-bold text-white">Unlock more value today</h4>
+                          <p className="text-xs text-gray-400 leading-relaxed">
+                            Would you like to enquire about a <span className="text-blue-400 font-bold">Gold Loan from CSB Bank</span> based on this valuation?
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex gap-3">
+                        <button 
+                          onClick={() => window.open('https://www.csb.bank.in/enquiry-gold', '_blank')}
+                          className="flex-1 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition-all shadow-[0_4px_15px_rgba(37,99,235,0.2)] flex items-center justify-center gap-2"
+                        >
+                          Yes, Enquire Now
+                          <ChevronRight className="w-3 h-3" />
+                        </button>
+                        <button 
+                          className="px-6 py-3 bg-white/5 border border-white/10 text-gray-500 rounded-xl text-xs font-bold hover:bg-white/10 transition-all"
+                        >
+                          Maybe later
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
                 </motion.div>
               ) : error ? (
                 <motion.div 
