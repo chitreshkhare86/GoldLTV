@@ -15,11 +15,12 @@ import {
   UserCheck,
   ShieldCheck,
   Fingerprint,
-  ChevronRight
+  ChevronRight,
+  MapPin
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { analyzeGoldHallmark, getLiveGoldPrices, type GoldAnalysisResult, type GoldPrices } from './services/goldService';
+import { analyzeGoldHallmark, getLiveGoldPrices, type GoldAnalysisResult, type GoldPrices, findNearestCsbBranch, type BranchInfo } from './services/goldService';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -43,6 +44,37 @@ export default function App() {
   const [prices, setPrices] = useState<GoldPrices | null>(null);
   const [currency, setCurrency] = useState<'USD' | 'INR'>('USD');
   const [error, setError] = useState<string | null>(null);
+
+  const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [nearestBranch, setNearestBranch] = useState<BranchInfo | null>(null);
+  const [searchingBranch, setSearchingBranch] = useState(false);
+
+  // Get user location
+  useEffect(() => {
+    if ("geolocation" in navigator && isKycDone) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          });
+        },
+        (error) => {
+          console.error("Location error:", error);
+        }
+      );
+    }
+  }, [isKycDone]);
+
+  // Find nearest branch when location is available
+  useEffect(() => {
+    if (location) {
+      setSearchingBranch(true);
+      findNearestCsbBranch(location.lat, location.lng)
+        .then(setNearestBranch)
+        .finally(() => setSearchingBranch(false));
+    }
+  }, [location]);
 
   // Load KYC from local storage if exists
   useEffect(() => {
@@ -564,6 +596,38 @@ export default function App() {
                           Maybe later
                         </button>
                       </div>
+
+                      {/* Nearest Branch Info */}
+                      {searchingBranch ? (
+                        <div className="flex items-center gap-2 text-[10px] text-gray-500 animate-pulse">
+                          <RefreshCw className="w-3 h-3 animate-spin" />
+                          Locating nearest CSB branch...
+                        </div>
+                      ) : nearestBranch ? (
+                        <motion.div 
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          className="pt-4 border-t border-white/5 space-y-3"
+                        >
+                          <div className="flex items-center gap-2 text-[10px] text-blue-400 uppercase tracking-widest font-bold">
+                            <MapPin className="w-3 h-3" />
+                            Suggested Branch
+                          </div>
+                          <div>
+                            <p className="text-xs font-bold text-white">{nearestBranch.name}</p>
+                            <p className="text-[10px] text-gray-500 mt-0.5">{nearestBranch.address}</p>
+                            {nearestBranch.distance && (
+                              <p className="text-[10px] text-blue-400/60 mt-1">Approx. {nearestBranch.distance} away</p>
+                            )}
+                          </div>
+                          <button 
+                            onClick={() => window.open(nearestBranch.link, '_blank')}
+                            className="text-[10px] text-white/60 hover:text-white underline transition-colors"
+                          >
+                            View on Google Maps
+                          </button>
+                        </motion.div>
+                      ) : null}
                     </motion.div>
                   )}
                 </motion.div>

@@ -94,3 +94,39 @@ export async function getLiveGoldPrices(): Promise<GoldPrices> {
     }; 
   }
 }
+
+export interface BranchInfo {
+  name: string;
+  address: string;
+  distance?: string;
+  link: string;
+}
+
+export async function findNearestCsbBranch(lat: number, lng: number): Promise<BranchInfo | null> {
+  const prompt = `Find the nearest CSB Bank branch to these coordinates: latitude ${lat}, longitude ${lng}. 
+  Return a JSON object with: 
+  {
+    "name": "Branch Name",
+    "address": "Full Address",
+    "distance": "approx distance",
+    "link": "Google Maps Link"
+  }
+  If no branch is found nearby or in India, return null.`;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: [{ parts: [{ text: prompt }] }],
+      config: {
+        tools: [{ googleSearch: {} }],
+        responseMimeType: "application/json"
+      }
+    });
+
+    const text = response.text || "null";
+    return JSON.parse(text);
+  } catch (error) {
+    console.error("Branch Search Error:", error);
+    return null;
+  }
+}

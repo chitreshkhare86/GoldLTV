@@ -2,7 +2,8 @@
   "name": "Gold Hallmark Valuer",
   "description": "Scan gold hallmarks to identify purity and calculate current market value using real-time gold prices. Requires identity verification (KYC) before use.",
   "requestFramePermissions": [
-    "camera"
+    "camera",
+    "geolocation"
   ],
   "majorCapabilities": []
 }
