@@ -19,10 +19,7 @@ async function startServer() {
       return res.status(400).json({ error: "ID Type and Number are required" });
     }
 
-    // Check if we have credentials
     if (!process.env.PROTEAN_CLIENT_ID || !process.env.PROTEAN_CLIENT_SECRET) {
-      console.log("Mocking KYC verification as PROTEAN credentials are not set.");
-      // In demo mode, we'll "verify" any valid-looking input
       const isValid = idNumber.length >= 10;
       return res.json({ 
         success: isValid, 
@@ -32,7 +29,6 @@ async function startServer() {
     }
 
     try {
-      // 1. Get Auth Token from Protean
       const authRes = await fetch("https://api.risewithprotean.io/oauth/token", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -44,12 +40,8 @@ async function startServer() {
       });
       const authData = await authRes.json();
 
-      if (!authData.access_token) {
-        throw new Error("Failed to get access token from Protean");
-      }
+      if (!authData.access_token) throw new Error("Failed to get access token");
 
-      // 2. Call Verification API
-      // Note: Endpoint depends on the specific NSDL/Protean service subscribed (PAN/Aadhaar)
       const targetEndpoint = idType === "PAN" 
         ? "https://api.risewithprotean.io/kyc/pan/verify"
         : "https://api.risewithprotean.io/kyc/aadhaar/verify";
@@ -61,17 +53,13 @@ async function startServer() {
           "Content-Type": "application/json",
           "x-api-key": process.env.PROTEAN_API_KEY || ""
         },
-        body: JSON.stringify({
-          id_number: idNumber,
-          full_name: fullName
-        })
+        body: JSON.stringify({ id_number: idNumber, full_name: fullName })
       });
 
       const verifyData = await verifyRes.json();
       res.json({ success: verifyData.status === "VALID", data: verifyData });
 
     } catch (error) {
-      console.error("KYC Verification Error:", error);
       res.status(500).json({ error: "Verification service unavailable" });
     }
   });

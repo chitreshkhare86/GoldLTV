@@ -1,4 +1,4 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, type GenerateContentResponse } from "@google/genai";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
 
@@ -30,29 +30,28 @@ export async function analyzeGoldHallmark(imageBase64: string): Promise<GoldAnal
   try {
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
-      contents: [
-        {
-          parts: [
-            { text: prompt },
-            {
-              inlineData: {
-                data: imageBase64.split(',')[1] || imageBase64,
-                mimeType: "image/jpeg"
-              }
+      contents: {
+        parts: [
+          { text: prompt },
+          {
+            inlineData: {
+              data: imageBase64.split(',')[1] || imageBase64,
+              mimeType: "image/jpeg"
             }
-          ]
-        }
-      ],
+          }
+        ]
+      },
       config: {
         responseMimeType: "application/json"
       }
     });
 
-    const text = response.text || "{}";
+    const text = response.text;
+    if (!text) throw new Error("No response from AI model");
     return JSON.parse(text);
   } catch (error) {
-    console.error("Gemini Analysis Error:", error);
-    throw new Error("Failed to analyze hallmark image.");
+    console.error("Hallmark Analysis Error:", error);
+    throw new Error("Could not analyze hallmark. Please ensure the image is clear and try again.");
   }
 }
 
@@ -66,18 +65,12 @@ export interface GoldPrices {
 }
 
 export async function getLiveGoldPrices(): Promise<GoldPrices> {
-  const prompt = `What are the current live market prices for 24K, 22K, and 18K gold per gram in USD and in INR (India)? 
-  Return a JSON object with keys: usd24k, usd22k, usd18k, inr24k, inr22k, inr18k. 
-  Example: {"usd24k": 78.50, "usd22k": 72.10, "usd18k": 59.00, "inr24k": 7500, "inr22k": 6875, "inr18k": 5625}`;
+  const prompt = `Current market prices for 24K, 22K, and 18K gold per gram in USD and in INR. Return JSON: {"usd24k": 0, "usd22k": 0, "usd18k": 0, "inr24k": 0, "inr22k": 0, "inr18k": 0}`;
   
   try {
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
-      contents: [
-        {
-          parts: [{ text: prompt }]
-        }
-      ],
+      contents: prompt,
       config: {
         tools: [{ googleSearch: {} }],
         responseMimeType: "application/json"
@@ -103,20 +96,12 @@ export interface BranchInfo {
 }
 
 export async function findNearestCsbBranch(lat: number, lng: number): Promise<BranchInfo | null> {
-  const prompt = `Find the nearest CSB Bank branch to these coordinates: latitude ${lat}, longitude ${lng}. 
-  Return a JSON object with: 
-  {
-    "name": "Branch Name",
-    "address": "Full Address",
-    "distance": "approx distance",
-    "link": "Google Maps Link"
-  }
-  If no branch is found nearby or in India, return null.`;
+  const prompt = `Find the nearest CSB Bank branch to coordinates: ${lat}, ${lng}. Return JSON: {name, address, distance, link}`;
 
   try {
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
-      contents: [{ parts: [{ text: prompt }] }],
+      contents: prompt,
       config: {
         tools: [{ googleSearch: {} }],
         responseMimeType: "application/json"
